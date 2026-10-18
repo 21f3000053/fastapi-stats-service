@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, Response, HTTPException
 app = FastAPI()
 
 ALLOWED_ORIGIN = "https://dash-hv15xk.example.com"
-YOUR_EMAIL = "your-actual-email@example.com"  # Replace with your actual logged-in email
+YOUR_EMAIL = "21f3000053@ds.iitm.study.ac.in"  # Replace with your actual logged-in email
 
 @app.middleware("http")
 async def add_cors_and_custom_headers(request: Request, call_next):
