@@ -5,41 +5,32 @@ from fastapi import FastAPI, Request, Response, HTTPException
 app = FastAPI()
 
 ALLOWED_ORIGIN = "https://dash-hv15xk.example.com"
-YOUR_EMAIL = "your-email@example.com"  # Replace with your actual logged-in email
+YOUR_EMAIL = "your-actual-email@example.com"  # Replace with your actual logged-in email
 
 @app.middleware("http")
-async def cors_and_headers_middleware(request: Request, call_next):
+async def add_cors_and_custom_headers(request: Request, call_next):
     start_time = time.perf_counter()
     request_id = str(uuid.uuid4())
     origin = request.headers.get("origin")
 
-    # Handle Preflight OPTIONS requests
+    # Handle CORS preflight and actual requests explicitly
     if request.method == "OPTIONS":
         response = Response(status_code=200)
-        # Only inject ACAO if the incoming origin matches the allowed one exactly
-        if origin == ALLOWED_ORIGIN:
-            response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
-            response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
-            response.headers["Access-Control-Max-Age"] = "86400"
-        # If origin doesn't match or is missing, no ACAO header is returned (strict rejection)
-        
-        process_time = time.perf_counter() - start_time
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Process-Time"] = f"{process_time:.6f}"
-        return response
+    else:
+        response = await call_next(request)
 
-    # Process standard requests (GET, etc.)
-    response = await call_next(request)
-
-    # Attach CORS header to actual responses if origin matches
-    if origin == ALLOWED_ORIGIN:
-        response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
-
+    # Attach required custom response headers
     process_time = time.perf_counter() - start_time
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Process-Time"] = f"{process_time:.6f}"
-    
+
+    # Enforce strict per-origin CORS policy
+    if origin == ALLOWED_ORIGIN:
+        response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "86400"
+
     return response
 
 @app.get("/stats")
